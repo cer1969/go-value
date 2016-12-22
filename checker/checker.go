@@ -4,6 +4,7 @@ package checker
 
 import (
 	"fmt"
+	"strings"
 )
 
 //----------------------------------------------------------------------------------------
@@ -12,43 +13,54 @@ import (
 // s: Inicializa Error message que pasará a Checker.
 //    Identifica al grupo de verificaciones, que puede ser un método o función
 func New(s string) *Checker {
-	return &Checker{msg: s}
+	return &Checker{title: s}
 }
 
 //----------------------------------------------------------------------------------------
 
 type Checker struct {
-	msg     string  // Error msg
-	n       int     // Error count
-	i_name  string  // Item name
-	i_value float64 // Item value
+	title   string   // Error title
+	msgs    []string // Error msg without title and final resume
+	i_name  string   // Item name
+	i_value float64  // Item value
 }
 
 func (vc *Checker) add(sim string, limit float64) {
-	vc.n += 1
-	vc.msg += fmt.Sprintf("\n  %s required value %s %f [%f received]", vc.i_name, sim, limit, vc.i_value)
+	vc.msgs = append(vc.msgs, fmt.Sprintf("%s (%v) required value %s %v", vc.i_name, vc.i_value, sim, limit))
 }
 
 // Incorpora un mensaje de error (sin verificar) y aumenta la cuenta
 func (vc *Checker) Append(msg string) {
-	vc.n += 1
-	vc.msg += fmt.Sprintf("\n  %s", msg)
+	vc.msgs = append(vc.msgs, msg)
+}
+
+// Incorpora mensajes de otro Checker
+func (vc *Checker) AppendError(err error) {
+	switch err.(type) {
+	case *CheckError:
+		ckerr, _ := err.(*CheckError)
+		vc.msgs = append(vc.msgs, ckerr.Error())
+		return
+	default:
+		vc.msgs = append(vc.msgs, err.Error())
+		return
+	}
 }
 
 func (vc *Checker) Reset(s string) {
-	vc.msg = s
-	vc.n = 0.0
+	vc.title = s
+	vc.msgs = []string{}
 	vc.i_name = ""
 	vc.i_value = 0.0
 }
 
-func (vc *Checker) Msg() string {
-	return vc.msg
-}
+//func (vc *Checker) Msg() string {
+//	return vc.msg
+//}
 
-func (vc *Checker) Count() int {
-	return vc.n
-}
+//func (vc *Checker) Count() int {
+//	return vc.n
+//}
 
 func (vc *Checker) Ck(name string, val float64) *Checker {
 	vc.i_name = name
@@ -90,15 +102,17 @@ func (vc *Checker) In(values ...float64) *Checker {
 			return vc
 		}
 	}
-	vc.n += 1
-	vc.msg += fmt.Sprintf("\n  %s required value in %v [%f received]", vc.i_name, values, vc.i_value)
+	vc.Append(fmt.Sprintf("%s (%v) required value in %v", vc.i_name, vc.i_value, values))
 	return vc
 }
 
 func (vc *Checker) Error() error {
-	if vc.n == 0 {
+	n := len(vc.msgs)
+	if n == 0 {
 		return nil
 	}
-	msg := vc.msg + fmt.Sprintf("\nTotal errors: %d", vc.n)
-	return &CheckError{msg, vc.n}
+	title := fmt.Sprintf("%s [%d errors]: ", vc.title, n)
+
+	msg := title + strings.Join(vc.msgs, "; ")
+	return &CheckError{msg, "", len(vc.msgs)}
 }

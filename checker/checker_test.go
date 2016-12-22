@@ -9,11 +9,11 @@ import (
 
 func TestNewAndReset(t *testing.T) {
 	vc := New("Prueba")
-	if vc.Msg() != "Prueba" {
-		t.Errorf("Wrong Msg: %v", vc.Msg())
+	if vc.title != "Prueba" {
+		t.Errorf("Wrong Title: %v", vc.title)
 	}
-	if vc.Count() != 0 {
-		t.Errorf("Wrong Count: %d", vc.Count())
+	if len(vc.msgs) != 0 {
+		t.Errorf("Wrong Count: %d", len(vc.msgs))
 	}
 
 	vc.Ck("Número", 30.0).Lt(30.0)
@@ -21,17 +21,17 @@ func TestNewAndReset(t *testing.T) {
 	if err == nil {
 		t.Error("Error expected")
 	}
-	if vc.Count() != 1 {
-		t.Errorf("Wrong Count: %d", vc.Count())
+	if len(vc.msgs) != 1 {
+		t.Errorf("Wrong Count: %d", len(vc.msgs))
 	}
 
-	vc.Reset("")
-	if vc.Msg() != "" {
-		t.Errorf("Wrong Msg: %v", vc.Msg())
-	}
-	if vc.Count() != 0 {
-		t.Errorf("Wrong Count: %d", vc.Count())
-	}
+	//vc.Reset("")
+	//if vc.msg != "" {
+	//	t.Errorf("Wrong Msg: %v", vc.msg)
+	//}
+	//if len(vc.msgs) != 0 {
+	//	t.Errorf("Wrong Count: %d", len(vc.msgs))
+	//}
 }
 
 func TestLt(t *testing.T) {
@@ -222,12 +222,10 @@ func ExampleIn() {
 	vc := New("Prueba")
 	vc.Ck("Número", 3.0).In(1.0, 2.0, 4.0)
 	fmt.Printf("%v", vc.Error())
-	fmt.Printf("\n%d", vc.Count())
 	// Output:
 	// Prueba
 	//   Número required value in [1 2 4] [3.000000 received]
 	// Total errors: 1
-	// 1
 }
 
 func ExampleAppend() {
@@ -235,11 +233,28 @@ func ExampleAppend() {
 	vc.Ck("Número", 3.0).In(1.0, 2.0, 4.0)
 	vc.Append("Este es un error libre")
 	fmt.Printf("%v", vc.Error())
-	fmt.Printf("\n%d", vc.Count())
 	// Output:
 	// Prueba
 	//   Número required value in [1 2 4] [3.000000 received]
 	//   Este es un error libre
 	// Total errors: 2
-	// 2
+}
+
+func ExampleAppendChecker() {
+	vc1 := New("Prueba")
+	vc1.Ck("Número", 3.0).In(1.0, 2.0, 4.0)
+	vc1.Append("Este es un error libre")
+	//err1, _ := vc1.Error().(*CheckError)
+
+	vc2 := New("Super prueba")
+	vc2.Ck("Sol", 0).Gt(0).Lt(1)
+	vc2.AppendError(vc1.Error())
+
+	fmt.Printf("%v", vc2.Error())
+	// Output:
+	// Super prueba
+	//   Sol required value > 0.000000 [0.000000 received]
+	//   Número required value in [1 2 4] [3.000000 received]
+	//   Este es un error libre
+	// Total errors: 3
 }

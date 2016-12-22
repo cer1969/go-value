@@ -6,18 +6,23 @@ package checker
 //----------------------------------------------------------------------------------------
 
 // NewCheckError crea CheckError con argumentos s: mensaje n: cuenta
-func NewCheckError(s string, n int) *CheckError {
-	return &CheckError{s, n}
+func NewCheckError(errmsg string, msg string, n int) *CheckError {
+	return &CheckError{errmsg, msg, n}
 }
 
 // CheckError clase para identificar Errores en verificación de valores
 type CheckError struct {
-	s string // Descripción del error o errores
-	n int    // Cantidad de errores
+	errmsg string // Descripción del error o errores
+	msg    string // Mensaje(s) simplificado(s)
+	n      int    // Cantidad de errores
 }
 
 func (e *CheckError) Error() string {
-	return e.s
+	return e.errmsg
+}
+
+func (e *CheckError) Msg() string {
+	return e.msg
 }
 
 func (e *CheckError) Count() int {
