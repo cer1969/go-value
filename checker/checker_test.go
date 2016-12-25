@@ -4,16 +4,17 @@ package checker
 
 import (
 	"fmt"
+	//"strings"
 	"testing"
 )
 
 func TestNewAndReset(t *testing.T) {
 	vc := New("Prueba")
-	if vc.title != "Prueba" {
-		t.Errorf("Wrong Title: %v", vc.title)
+	if vc.msg != "Prueba: " {
+		t.Errorf("Wrong msg: %v", vc.msg)
 	}
-	if len(vc.msgs) != 0 {
-		t.Errorf("Wrong Count: %d", len(vc.msgs))
+	if !vc.ok {
+		t.Errorf("Wrong ok: %v", vc.ok)
 	}
 
 	vc.Ck("Número", 30.0).Lt(30.0)
@@ -21,17 +22,17 @@ func TestNewAndReset(t *testing.T) {
 	if err == nil {
 		t.Error("Error expected")
 	}
-	if len(vc.msgs) != 1 {
-		t.Errorf("Wrong Count: %d", len(vc.msgs))
+	if vc.ok {
+		t.Errorf("Wrong ok: %v", vc.ok)
 	}
 
-	//vc.Reset("")
-	//if vc.msg != "" {
-	//	t.Errorf("Wrong Msg: %v", vc.msg)
-	//}
-	//if len(vc.msgs) != 0 {
-	//	t.Errorf("Wrong Count: %d", len(vc.msgs))
-	//}
+	vc.Reset("")
+	if vc.msg != ": " {
+		t.Errorf("Wrong msg: %v", vc.msg)
+	}
+	if !vc.ok {
+		t.Errorf("Wrong ok: %v", vc.ok)
+	}
 }
 
 func TestLt(t *testing.T) {
@@ -206,16 +207,10 @@ func ExampleChecker() {
 	vc.Ck("Número", 30).Gt(40.0).Gt(100.0)
 	vc.Ck("Sol", 0.0).Gt(0.0).Lt(1.0)
 	vc.Ck("Sol", 0.5).Gt(0.0).Lt(1.0)
-	err, _ := vc.Error().(*CheckError) // Verifica y convierte vc.Error() en *CheckError
+	err := vc.Error()
 	fmt.Printf(err.Error())
-	fmt.Printf("\n%d", err.Count())
 	// Output:
-	// Prueba
-	//   Número required value > 40.000000 [30.000000 received]
-	//   Número required value > 100.000000 [30.000000 received]
-	//   Sol required value > 0.000000 [0.000000 received]
-	// Total errors: 3
-	// 3
+	// Prueba: Número (30) required value > 40, Número (30) required value > 100, Sol (0) required value > 0,
 }
 
 func ExampleIn() {
@@ -223,9 +218,7 @@ func ExampleIn() {
 	vc.Ck("Número", 3.0).In(1.0, 2.0, 4.0)
 	fmt.Printf("%v", vc.Error())
 	// Output:
-	// Prueba
-	//   Número required value in [1 2 4] [3.000000 received]
-	// Total errors: 1
+	// Prueba: Número (3) required value in [1 2 4],
 }
 
 func ExampleAppend() {
@@ -234,17 +227,13 @@ func ExampleAppend() {
 	vc.Append("Este es un error libre")
 	fmt.Printf("%v", vc.Error())
 	// Output:
-	// Prueba
-	//   Número required value in [1 2 4] [3.000000 received]
-	//   Este es un error libre
-	// Total errors: 2
+	// Prueba: Número (3) required value in [1 2 4], Este es un error libre,
 }
 
-func ExampleAppendChecker() {
+func ExampleAppendError() {
 	vc1 := New("Prueba")
 	vc1.Ck("Número", 3.0).In(1.0, 2.0, 4.0)
 	vc1.Append("Este es un error libre")
-	//err1, _ := vc1.Error().(*CheckError)
 
 	vc2 := New("Super prueba")
 	vc2.Ck("Sol", 0).Gt(0).Lt(1)
@@ -252,9 +241,19 @@ func ExampleAppendChecker() {
 
 	fmt.Printf("%v", vc2.Error())
 	// Output:
-	// Super prueba
-	//   Sol required value > 0.000000 [0.000000 received]
-	//   Número required value in [1 2 4] [3.000000 received]
-	//   Este es un error libre
-	// Total errors: 3
+	// Super prueba: Sol (0) required value > 0, Prueba: Número (3) required value in [1 2 4], Este es un error libre, ,
+}
+
+func ExampleAppendSub() {
+	vc1 := New("Prueba")
+	vc1.Ck("Número", 3.0).In(1.0, 2.0, 4.0)
+	vc1.Append("Este es un error libre")
+
+	vc2 := New("Super prueba")
+	vc2.Ck("Sol", 0).Gt(0).Lt(1)
+	vc2.AppendSub(vc1.Error())
+
+	fmt.Printf("%q", vc2.Msg())
+	// Output:
+	// "Super prueba: Sol (0) required value > 0, \n  Prueba: Número (3) required value in [1 2 4], Este es un error libre, "
 }

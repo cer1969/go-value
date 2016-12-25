@@ -12,55 +12,59 @@ import (
 // New retorna Checker, objeto para verificar conjunto de valores
 // s: Inicializa Error message que pasará a Checker.
 //    Identifica al grupo de verificaciones, que puede ser un método o función
-func New(s string) *Checker {
-	return &Checker{title: s}
+func New(title string) *Checker {
+	return &Checker{msg: fmt.Sprintf("%s: ", title), ok: true}
 }
 
 //----------------------------------------------------------------------------------------
 
 type Checker struct {
-	title   string   // Error title
-	msgs    []string // Error msg without title and final resume
-	i_name  string   // Item name
-	i_value float64  // Item value
+	msg     string  // Error title
+	ok      bool    // True if no errors
+	i_name  string  // Item name
+	i_value float64 // Item value
 }
 
-func (vc *Checker) add(sim string, limit float64) {
-	vc.msgs = append(vc.msgs, fmt.Sprintf("%s (%v) required value %s %v", vc.i_name, vc.i_value, sim, limit))
-}
-
-// Incorpora un mensaje de error (sin verificar) y aumenta la cuenta
-func (vc *Checker) Append(msg string) {
-	vc.msgs = append(vc.msgs, msg)
-}
-
-// Incorpora mensajes de otro Checker
-func (vc *Checker) AppendError(err error) {
-	switch err.(type) {
-	case *CheckError:
-		ckerr, _ := err.(*CheckError)
-		vc.msgs = append(vc.msgs, ckerr.Error())
-		return
-	default:
-		vc.msgs = append(vc.msgs, err.Error())
-		return
-	}
-}
-
-func (vc *Checker) Reset(s string) {
-	vc.title = s
-	vc.msgs = []string{}
+func (vc *Checker) Reset(title string) {
+	vc.msg = fmt.Sprintf("%s: ", title)
+	vc.ok = true
 	vc.i_name = ""
 	vc.i_value = 0.0
 }
 
-//func (vc *Checker) Msg() string {
-//	return vc.msg
-//}
+func (vc *Checker) Msg() string {
+	return vc.msg
+}
 
-//func (vc *Checker) Count() int {
-//	return vc.n
-//}
+func (vc *Checker) Ok() bool {
+	return vc.ok
+}
+
+func (vc *Checker) add(sim string, limit float64) {
+	vc.msg += fmt.Sprintf("%s (%v) required value %s %v, ", vc.i_name, vc.i_value, sim, limit)
+	vc.ok = false
+}
+
+// Incorpora un mensaje de error (sin verificar) y aumenta la cuenta
+func (vc *Checker) Append(msg string) {
+	vc.msg += fmt.Sprintf("%s, ", msg)
+	vc.ok = false
+}
+
+// Incorpora mensajes de otro error
+func (vc *Checker) AppendError(err error) {
+	vc.Append(err.Error())
+}
+
+// Incorpora mensajes de error como sub proceso
+func (vc *Checker) AppendSub(err error) {
+	lines := strings.Split(err.Error(), "\n")
+	for i := range lines {
+		lines[i] = fmt.Sprintf("  %s", lines[i])
+	}
+	vc.msg = vc.msg + "\n" + strings.Join(lines, "\n")
+	vc.ok = false
+}
 
 func (vc *Checker) Ck(name string, val float64) *Checker {
 	vc.i_name = name
@@ -107,12 +111,8 @@ func (vc *Checker) In(values ...float64) *Checker {
 }
 
 func (vc *Checker) Error() error {
-	n := len(vc.msgs)
-	if n == 0 {
+	if vc.ok {
 		return nil
 	}
-	title := fmt.Sprintf("%s [%d errors]: ", vc.title, n)
-
-	msg := title + strings.Join(vc.msgs, "; ")
-	return &CheckError{msg, "", len(vc.msgs)}
+	return &CheckError{vc.msg}
 }
