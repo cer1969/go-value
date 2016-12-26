@@ -200,6 +200,26 @@ func TestAppend(t *testing.T) {
 	if err == nil {
 		t.Error("Error expected")
 	}
+
+	vc.Reset("Prueba Append empty string")
+	vc.Append("")
+	err = vc.Error()
+	if err != nil {
+		t.Errorf("Error not expected: %v", err)
+	}
+}
+
+func TestAppendSub(t *testing.T) {
+	vc := New("Prueba Append Sub")
+
+	vcs := New("Sub Error")
+	vcs.Ck("Número", 30.0).Gt(29.0)
+
+	vc.AppendSub(vcs.Error())
+	err := vc.Error()
+	if err != nil {
+		t.Errorf("Error not expected: %v", err)
+	}
 }
 
 func ExampleChecker() {
