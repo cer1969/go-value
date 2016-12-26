@@ -47,23 +47,29 @@ func (vc *Checker) add(sim string, limit float64) {
 
 // Incorpora un mensaje de error (sin verificar) y aumenta la cuenta
 func (vc *Checker) Append(msg string) {
-	vc.msg += fmt.Sprintf("%s, ", msg)
-	vc.ok = false
+	if msg != "" {
+		vc.msg += fmt.Sprintf("%s, ", msg)
+		vc.ok = false
+	}
 }
 
 // Incorpora mensajes de otro error
 func (vc *Checker) AppendError(err error) {
-	vc.Append(err.Error())
+	if err != nil {
+		vc.Append(err.Error())
+	}
 }
 
 // Incorpora mensajes de error como sub proceso
 func (vc *Checker) AppendSub(err error) {
-	lines := strings.Split(err.Error(), "\n")
-	for i := range lines {
-		lines[i] = fmt.Sprintf("  %s", lines[i])
+	if err != nil {
+		lines := strings.Split(err.Error(), "\n")
+		for i := range lines {
+			lines[i] = fmt.Sprintf("  %s", lines[i])
+		}
+		vc.msg = vc.msg + "\n" + strings.Join(lines, "\n")
+		vc.ok = false
 	}
-	vc.msg = vc.msg + "\n" + strings.Join(lines, "\n")
-	vc.ok = false
 }
 
 func (vc *Checker) Ck(name string, val float64) *Checker {
