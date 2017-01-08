@@ -277,3 +277,11 @@ func ExampleAppendSub() {
 	// Output:
 	// "Super prueba: Sol (0) required value > 0, \n  Prueba: Número (3) required value in [1 2 4], Este es un error libre, "
 }
+
+func BenchmarkChecker(b *testing.B) {
+	vc := New("Benchmark Checker")
+	b.ResetTimer()
+	for i := 0; i < b.N; i++ {
+		vc.Ck("Sol", -0.5).Gt(0).Lt(1)
+	}
+}
